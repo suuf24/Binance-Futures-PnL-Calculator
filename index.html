@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Binance Futures PnL Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0b0e11;
+      padding: 20px;
+      margin: 0;
+      color: #eaecef;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .calculator {
+      background: #1e2329;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      max-width: 450px;
+      width: 100%;
+    }
+    h2 {
+      margin-bottom: 20px;
+      text-align: center;
+      color: #fcd535;
+    }
+    label {
+      font-weight: 600;
+      margin-top: 10px;
+      display: block;
+      color: #eaecef;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0 15px;
+      border: 1px solid #2b3139;
+      border-radius: 8px;
+      background-color: #12161c;
+      color: #eaecef;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #fcd535;
+      color: #0b0e11;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #e5be2c;
+    }
+    .result {
+      margin-top: 20px;
+      background: #2b3139;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 16px;
+      color: #eaecef;
+    }
+    @media (max-width: 500px) {
+      .calculator {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <h2>Binance Futures PnL Calculator</h2>
+
+    <label for="entryPrice">Entry Price</label>
+    <input type="number" id="entryPrice" placeholder="e.g. 25000" step="any">
+
+    <label for="closePrice">Close Price</label>
+    <input type="number" id="closePrice" placeholder="e.g. 26000" step="any">
+
+    <label for="margin">Margin (USDT)</label>
+    <input type="number" id="margin" placeholder="e.g. 100" step="any">
+
+    <label for="leverage">Leverage</label>
+    <input type="number" id="leverage" placeholder="e.g. 10" step="any">
+
+    <label for="position">Position Type</label>
+    <select id="position">
+      <option value="long">Long</option>
+      <option value="short">Short</option>
+    </select>
+
+    <button onclick="calculatePnL()">Calculate PnL</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    function calculatePnL() {
+      const entry = parseFloat(document.getElementById('entryPrice').value);
+      const close = parseFloat(document.getElementById('closePrice').value);
+      const margin = parseFloat(document.getElementById('margin').value);
+      const leverage = parseFloat(document.getElementById('leverage').value);
+      const position = document.getElementById('position').value;
+
+      if (!entry || !close || !margin || !leverage) {
+        document.getElementById('result').innerHTML = "<span style='color:red'>Please fill out all fields correctly.</span>";
+        return;
+      }
+
+      const positionSize = margin * leverage;
+      const feeRate = 0.0004;
+      const totalFees = positionSize * feeRate * 2;
+      let profit = 0;
+
+      if (position === "long") {
+        profit = (close - entry) * (positionSize / entry);
+      } else {
+        profit = (entry - close) * (positionSize / entry);
+      }
+
+      const netProfit = profit - totalFees;
+      const percentage = (netProfit / margin) * 100;
+
+      const liquidationPrice = position === "long"
+        ? entry - (entry / leverage)
+        : entry + (entry / leverage);
+
+      document.getElementById('result').innerHTML =
+        `<strong>PnL Percentage:</strong> ${percentage.toFixed(2)}%<br>` +
+        `<strong>Net Profit:</strong> $${netProfit.toFixed(2)} (after fees)<br>` +
+        `<strong>Estimated Liquidation Price:</strong> ${liquidationPrice.toFixed(2)}`;
+    }
+  </script>
+</body>
+</html>
