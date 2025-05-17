@@ -114,53 +114,46 @@
   </div>
 
   <script>
-    function calculateLiquidationPrice() {
-      const entry = parseFloat(document.getElementById('entryPrice').value);
-      const leverage = parseFloat(document.getElementById('leverage').value);
-      const position = document.getElementById('position').value;
+    ffunction calculatePnL() {
+  const entry = parseFloat(document.getElementById('entryPrice').value);
+  const close = parseFloat(document.getElementById('closePrice').value);
+  const margin = parseFloat(document.getElementById('margin').value);
+  const leverage = parseFloat(document.getElementById('leverage').value);
+  const position = document.getElementById('position').value;
 
-      if (!entry || !leverage) {
-        document.getElementById('liqPrice').innerText = "-";
-        return;
-      }
+  if (!entry || !close || !margin || !leverage) {
+    document.getElementById('result').innerHTML = "<span style='color:red'>Please fill out all fields correctly.</span>";
+    return;
+  }
 
-      const liqPrice = position === "long"
-        ? entry - (entry / leverage)
-        : entry + (entry / leverage);
+  const positionSize = margin * leverage;
+  const takerFee = 0.0005;
+  const makerFee = 0.0002;
 
-      document.getElementById('liqPrice').innerText = liqPrice.toFixed(2);
-    }
+  const openFee = positionSize * takerFee;
+  const closeFee = positionSize * makerFee;
+  const totalFees = openFee + closeFee;
 
-    function calculatePnL() {
-      const entry = parseFloat(document.getElementById('entryPrice').value);
-      const close = parseFloat(document.getElementById('closePrice').value);
-      const margin = parseFloat(document.getElementById('margin').value);
-      const leverage = parseFloat(document.getElementById('leverage').value);
-      const position = document.getElementById('position').value;
+  let profit = 0;
 
-      if (!entry || !close || !margin || !leverage) {
-        document.getElementById('result').innerHTML = "<span style='color:red'>Please fill out all fields correctly.</span>";
-        return;
-      }
+  if (position === "long") {
+    profit = (close - entry) * (positionSize / entry);
+  } else {
+    profit = (entry - close) * (positionSize / entry);
+  }
 
-      const positionSize = margin * leverage;
-      const feeRate = 0.0004;
-      const totalFees = positionSize * feeRate * 2;
-      let profit = 0;
+  const netProfit = profit - totalFees;
+  const percentage = (netProfit / margin) * 100;
 
-      if (position === "long") {
-        profit = (close - entry) * (positionSize / entry);
-      } else {
-        profit = (entry - close) * (positionSize / entry);
-      }
+  document.getElementById('result').innerHTML =
+    `<strong>PnL Percentage:</strong> ${percentage.toFixed(2)}%<br>` +
+    `<strong>Gross Profit:</strong> $${profit.toFixed(2)}<br>` +
+    `<strong>Opening Fee (Taker):</strong> $${openFee.toFixed(2)}<br>` +
+    `<strong>Closing Fee (Maker):</strong> $${closeFee.toFixed(2)}<br>` +
+    `<strong>Total Fees:</strong> $${totalFees.toFixed(2)}<br>` +
+    `<strong>Net Profit:</strong> $${netProfit.toFixed(2)} (after fees)`;
+}
 
-      const netProfit = profit - totalFees;
-      const percentage = (netProfit / margin) * 100;
-
-      document.getElementById('result').innerHTML =
-        `<strong>PnL Percentage:</strong> ${percentage.toFixed(2)}%<br>` +
-        `<strong>Net Profit:</strong> $${netProfit.toFixed(2)} (after fees)`;
-    }
   </script>
 </body>
 </html>
