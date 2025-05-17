@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,34 +75,6 @@
   @keyframes flicker {
     0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
     20%, 24%, 55% { opacity: 0.7; }
-  }
-
-  .audio-controls {
-    position: absolute;
-    top: 2%;
-    right: 2%;
-    display: flex;
-    gap: 8px;
-  }
-
-  .audio-toggle {
-    padding: 8px;
-    background-color: var(--pixel-gray);
-    color: var(--pixel-white);
-    border: 2px solid var(--pixel-gray);
-    border-radius: 0;
-    font-family: 'Press Start 2P', cursive;
-    font-size: clamp(8px, 2vw, 10px);
-    cursor: pointer;
-    text-shadow: 1px 1px 0 #000;
-    box-shadow: 0 0 4px var(--crt-glow);
-    transition: transform 0.1s;
-  }
-
-  .audio-toggle:hover {
-    transform: scale(1.05);
-    background-color: var(--pixel-yellow);
-    color: #000;
   }
 
   form {
@@ -201,8 +174,21 @@
     text-shadow: 1px 1px 0 #000;
     box-shadow: inset 0 0 4px var(--crt-glow);
     animation: fadeIn 0.5s;
-    line-height: 1.5;
-    word-wrap: break-word;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 8px 16px;
+    align-items: center;
+  }
+
+  .result-label {
+    color: var(--pixel-green);
+    font-weight: bold;
+    text-align: right;
+  }
+
+  .result-value {
+    color: var(--pixel-yellow);
+    text-align: left;
   }
 
   @keyframes fadeIn {
@@ -220,16 +206,6 @@
     .crt-screen {
       padding: 3%;
       background-size: 100% 1.5px;
-    }
-
-    .audio-controls {
-      top: 1%;
-      right: 1%;
-    }
-
-    .audio-toggle {
-      padding: 6px;
-      font-size: clamp(7px, 1.8vw, 9px);
     }
 
     form {
@@ -254,6 +230,16 @@
       padding-right: 10%;
       background-size: 8px;
     }
+
+    .result {
+      grid-template-columns: 1fr;
+      gap: 4px;
+      text-align: left;
+    }
+
+    .result-label, .result-value {
+      text-align: left;
+    }
   }
 
   @media (max-width: 480px) {
@@ -266,16 +252,6 @@
       padding: 2%;
       background-size: 100% 1px;
       animation: scanline 4s linear infinite;
-    }
-
-    .audio-controls {
-      top: 0.5%;
-      right: 0.5%;
-    }
-
-    .audio-toggle {
-      padding: 4px;
-      font-size: clamp(6px, 1.5vw, 8px);
     }
 
     h1 {
@@ -331,25 +307,12 @@
     form {
       gap: 4px;
     }
-
-    .audio-controls {
-      top: 0.3%;
-      right: 0.3%;
-    }
-
-    .audio-toggle {
-      padding: 3px;
-      font-size: clamp(5px, 1.2vw, 7px);
-    }
   }
 </style>
 </head>
 <body>
 <div class="arcade-cabinet">
   <div class="crt-screen">
-    <div class="audio-controls">
-      <button class="audio-toggle" id="audioToggle">SOUND: ON</button>
-    </div>
     <h1>FUTURES PNL ARCADE</h1>
     <form id="pnlForm">
       <div class="form-group">
@@ -391,8 +354,8 @@
   </div>
 </div>
 
-<audio id="pacmanSound" loop>
-  <source src="waka_waka.mp3" type="audio/mpeg">
+<audio id="backgroundSound" autoplay loop>
+  <source src="background.mp3" type="audio/mpeg">
   Your browser does not support the audio element.
 </audio>
 
@@ -403,21 +366,6 @@
   const form = document.getElementById('pnlForm');
   const liqPriceDisplay = document.getElementById('liqPrice');
   const resultDiv = document.getElementById('result');
-  const pacmanSound = document.getElementById('pacmanSound');
-  const audioToggle = document.getElementById('audioToggle');
-
-  // Audio toggle functionality
-  let isPlaying = false;
-  audioToggle.addEventListener('click', () => {
-    if (isPlaying) {
-      pacmanSound.pause();
-      audioToggle.textContent = 'SOUND: OFF';
-    } else {
-      pacmanSound.play().catch(e => console.error('Audio play failed:', e));
-      audioToggle.textContent = 'SOUND: ON';
-    }
-    isPlaying = !isPlaying;
-  });
 
   function updatePositionColor() {
     if (positionInput.value === 'short') {
@@ -486,15 +434,21 @@
     const netPnl = pnl - totalFee;
     const pnlPercent = (netPnl / margin) * 100;
 
-    let pnlColor = netPnl >= 0 ? 'var(--pixel-green)' : 'var(--pixel-red)';
     resultDiv.innerHTML = `
-      <strong>POSITION SIZE:</strong> ${positionSize.toFixed(2)} USDT<br/>
-      <strong>OPEN FEE (0.05%):</strong> ${openFee.toFixed(4)} USDT<br/>
-      <strong>CLOSE FEE (0.02%):</strong> ${closeFee.toFixed(4)} USDT<br/>
-      <strong>TOTAL FEES:</strong> ${totalFee.toFixed(4)} USDT<br/>
-      <strong>PNL BEFORE FEES:</strong> ${pnl.toFixed(4)} USDT<br/>
-      <strong style="color: ${pnlColor};">NET PNL:</strong> ${netPnl.toFixed(4)} USDT<br/>
-      <strong style="color: ${pnlColor};">PNL %:</strong> ${pnlPercent.toFixed(2)}%
+      <div class="result-label">POSITION SIZE:</div>
+      <div class="result-value">${positionSize.toFixed(2)} USDT</div>
+      <div class="result-label">OPEN FEE (0.05%):</div>
+      <div class="result-value">${openFee.toFixed(4)} USDT</div>
+      <div class="result-label">CLOSE FEE (0.02%):</div>
+      <div class="result-value">${closeFee.toFixed(4)} USDT</div>
+      <div class="result-label">TOTAL FEES:</div>
+      <div class="result-value">${totalFee.toFixed(4)} USDT</div>
+      <div class="result-label">PNL BEFORE FEES:</div>
+      <div class="result-value">${pnl.toFixed(4)} USDT</div>
+      <div class="result-label">NET PNL:</div>
+      <div class="result-value">${netPnl.toFixed(4)} USDT</div>
+      <div class="result-label">PNL %:</div>
+      <div class="result-value">${pnlPercent.toFixed(2)}%</div>
     `;
   });
 
