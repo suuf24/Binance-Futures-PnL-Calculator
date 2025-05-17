@@ -97,7 +97,6 @@
 
   /* Position dropdown specific styles */
   select#position {
-    background-color: var(--green);
     color: #fff;
     font-weight: 600;
     background-image:
@@ -111,6 +110,12 @@
     transition: background-color 0.3s ease;
   }
 
+  /* Long state */
+  select#position.long {
+    background-color: var(--green);
+  }
+
+  /* Short state */
   select#position.short {
     background-color: var(--red);
   }
@@ -214,9 +219,11 @@
 
   function updatePositionColor() {
     if (positionInput.value === 'short') {
+      positionInput.classList.remove('long');
       positionInput.classList.add('short');
     } else {
       positionInput.classList.remove('short');
+      positionInput.classList.add('long');
     }
     calculateLiquidationPrice();
   }
@@ -291,15 +298,19 @@
     // Display results
     let pnlColor = netPnl >= 0 ? 'var(--green)' : 'var(--red)';
     resultDiv.innerHTML = `
-  <strong>Position Size (USDT):</strong> ${positionSize.toFixed(2)}<br/>
-  <strong>Open Fee (Taker 0.05%):</strong> ${openFee.toFixed(4)} USDT<br/>
-  <strong>Close Fee (Maker 0.02%):</strong> ${closeFee.toFixed(4)} USDT<br/>
-  <strong>Total Fees:</strong> ${totalFee.toFixed(4)} USDT<br/>
-  <strong>PnL Before Fees:</strong> ${(pnl).toFixed(4)} USDT<br/>
-  <strong style="color: ${pnlColor};">PnL After Fees:</strong> ${netPnl.toFixed(4)} USDT<br/>
-  <strong style="color: ${pnlColor};">PnL Percentage:</strong> ${pnlPercent.toFixed(2)}%
-`;
-updatePositionColor();
+      <strong>Position Size (USDT):</strong> ${positionSize.toFixed(2)}<br/>
+      <strong>Open Fee (Taker 0.05%):</strong> ${openFee.toFixed(4)} USDT<br/>
+      <strong>Close Fee (Maker 0.02%):</strong> ${closeFee.toFixed(4)} USDT<br/>
+      <strong>Total Fees:</strong> ${totalFee.toFixed(4)} USDT<br/>
+      <strong>PnL Before Fees:</strong> ${(pnl).toFixed(4)} USDT<br/>
+      <strong style="color: ${pnlColor};">PnL After Fees:</strong> ${netPnl.toFixed(4)} USDT<br/>
+      <strong style="color: ${pnlColor};">PnL Percentage:</strong> ${pnlPercent.toFixed(2)}%
+    `;
+  });
+
+  // Initialize position color on page load
+  updatePositionColor();
 </script>
 
-</body> </html>
+</body>
+</html>
