@@ -22,27 +22,28 @@
     }
     .calculator {
       background: #1e2329;
-      padding: 30px;
+      padding: 40px;
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-      max-width: 450px;
       width: 100%;
+      max-width: 700px;
     }
     h2 {
-      margin-bottom: 20px;
+      margin-bottom: 30px;
       text-align: center;
       color: #fcd535;
+      font-size: 28px;
     }
     label {
       font-weight: 600;
-      margin-top: 10px;
+      margin-top: 15px;
       display: block;
       color: #eaecef;
     }
     input, select {
       width: 100%;
-      padding: 10px;
-      margin: 5px 0 15px;
+      padding: 12px;
+      margin: 5px 0 20px;
       border: 1px solid #2b3139;
       border-radius: 8px;
       background-color: #12161c;
@@ -50,16 +51,16 @@
       font-size: 16px;
     }
     .text-view {
-      margin: -10px 0 15px;
+      margin: -10px 0 20px;
       color: #fcd535;
       font-weight: bold;
     }
     button {
       width: 100%;
-      padding: 12px;
+      padding: 14px;
       background-color: #fcd535;
       color: #0b0e11;
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 600;
       border: none;
       border-radius: 8px;
@@ -70,16 +71,17 @@
       background-color: #e5be2c;
     }
     .result {
-      margin-top: 20px;
+      margin-top: 25px;
       background: #2b3139;
-      padding: 15px;
+      padding: 20px;
       border-radius: 8px;
       font-size: 16px;
       color: #eaecef;
     }
-    @media (max-width: 500px) {
+    @media (max-width: 600px) {
       .calculator {
-        padding: 20px;
+        padding: 25px;
+        max-width: 100%;
       }
     }
   </style>
@@ -87,73 +89,99 @@
 <body>
   <div class="calculator">
     <h2>Binance Futures PnL Calculator</h2>
+    <form id="pnlForm">
+      <label for="position">Position Type</label>
+      <select id="position">
+        <option value="long">Long</option>
+        <option value="short">Short</option>
+      </select>
 
-    <label for="position">Position Type</label>
-    <select id="position" onchange="calculateLiquidationPrice()">
-      <option value="long">Long</option>
-      <option value="short">Short</option>
-    </select>
+      <label for="entryPrice">Entry Price</label>
+      <input type="number" id="entryPrice" placeholder="e.g. 25000" step="any">
 
-    <label for="entryPrice">Entry Price</label>
-    <input type="number" id="entryPrice" placeholder="e.g. 25000" step="any" oninput="calculateLiquidationPrice()">
+      <label for="leverage">Leverage</label>
+      <input type="number" id="leverage" placeholder="e.g. 10" step="any">
 
-    <label for="leverage">Leverage</label>
-    <input type="number" id="leverage" placeholder="e.g. 10" step="any" oninput="calculateLiquidationPrice()">
+      <div class="text-view">Estimated Liquidation Price: <span id="liqPrice">-</span></div>
 
-    <div class="text-view">Estimated Liquidation Price: <span id="liqPrice">-</span></div>
+      <label for="margin">Margin (USDT)</label>
+      <input type="number" id="margin" placeholder="e.g. 100" step="any">
 
-    <label for="margin">Margin (USDT)</label>
-    <input type="number" id="margin" placeholder="e.g. 100" step="any">
+      <label for="closePrice">Close Price</label>
+      <input type="number" id="closePrice" placeholder="e.g. 26000" step="any">
 
-    <label for="closePrice">Close Price</label>
-    <input type="number" id="closePrice" placeholder="e.g. 26000" step="any">
-
-    <button onclick="calculatePnL()">Calculate PnL</button>
+      <button type="submit">Calculate PnL</button>
+    </form>
 
     <div class="result" id="result"></div>
   </div>
 
   <script>
-    ffunction calculatePnL() {
-  const entry = parseFloat(document.getElementById('entryPrice').value);
-  const close = parseFloat(document.getElementById('closePrice').value);
-  const margin = parseFloat(document.getElementById('margin').value);
-  const leverage = parseFloat(document.getElementById('leverage').value);
-  const position = document.getElementById('position').value;
+    const entryInput = document.getElementById('entryPrice');
+    const leverageInput = document.getElementById('leverage');
 
-  if (!entry || !close || !margin || !leverage) {
-    document.getElementById('result').innerHTML = "<span style='color:red'>Please fill out all fields correctly.</span>";
-    return;
-  }
+    document.getElementById('entryPrice').addEventListener('input', calculateLiquidationPrice);
+    document.getElementById('leverage').addEventListener('input', calculateLiquidationPrice);
+    document.getElementById('position').addEventListener('change', calculateLiquidationPrice);
 
-  const positionSize = margin * leverage;
-  const takerFee = 0.0005;
-  const makerFee = 0.0002;
+    function calculateLiquidationPrice() {
+      const entry = parseFloat(entryInput.value);
+      const leverage = parseFloat(leverageInput.value);
+      const position = document.getElementById('position').value;
 
-  const openFee = positionSize * takerFee;
-  const closeFee = positionSize * makerFee;
-  const totalFees = openFee + closeFee;
+      if (!entry || !leverage) {
+        document.getElementById('liqPrice').innerText = "-";
+        return;
+      }
 
-  let profit = 0;
+      const liqPrice = position === "long"
+        ? entry - (entry / leverage)
+        : entry + (entry / leverage);
 
-  if (position === "long") {
-    profit = (close - entry) * (positionSize / entry);
-  } else {
-    profit = (entry - close) * (positionSize / entry);
-  }
+      document.getElementById('liqPrice').innerText = liqPrice.toFixed(2);
+    }
 
-  const netProfit = profit - totalFees;
-  const percentage = (netProfit / margin) * 100;
+    document.getElementById('pnlForm').addEventListener('submit', function(e) {
+      e.preventDefault(); // prevent form submission
 
-  document.getElementById('result').innerHTML =
-    `<strong>PnL Percentage:</strong> ${percentage.toFixed(2)}%<br>` +
-    `<strong>Gross Profit:</strong> $${profit.toFixed(2)}<br>` +
-    `<strong>Opening Fee (Taker):</strong> $${openFee.toFixed(2)}<br>` +
-    `<strong>Closing Fee (Maker):</strong> $${closeFee.toFixed(2)}<br>` +
-    `<strong>Total Fees:</strong> $${totalFees.toFixed(2)}<br>` +
-    `<strong>Net Profit:</strong> $${netProfit.toFixed(2)} (after fees)`;
-}
+      const entry = parseFloat(document.getElementById('entryPrice').value);
+      const close = parseFloat(document.getElementById('closePrice').value);
+      const margin = parseFloat(document.getElementById('margin').value);
+      const leverage = parseFloat(document.getElementById('leverage').value);
+      const position = document.getElementById('position').value;
 
+      if (!entry || !close || !margin || !leverage) {
+        document.getElementById('result').innerHTML = "<span style='color:red'>Please fill out all fields correctly.</span>";
+        return;
+      }
+
+      const positionSize = margin * leverage;
+      const takerFee = 0.0005;
+      const makerFee = 0.0002;
+
+      const openFee = positionSize * takerFee;
+      const closeFee = positionSize * makerFee;
+      const totalFees = openFee + closeFee;
+
+      let profit = 0;
+
+      if (position === "long") {
+        profit = (close - entry) * (positionSize / entry);
+      } else {
+        profit = (entry - close) * (positionSize / entry);
+      }
+
+      const netProfit = profit - totalFees;
+      const percentage = (netProfit / margin) * 100;
+
+      document.getElementById('result').innerHTML =
+        `<strong>PnL Percentage:</strong> ${percentage.toFixed(2)}%<br>` +
+        `<strong>Gross Profit:</strong> $${profit.toFixed(2)}<br>` +
+        `<strong>Opening Fee (Taker):</strong> $${openFee.toFixed(2)}<br>` +
+        `<strong>Closing Fee (Maker):</strong> $${closeFee.toFixed(2)}<br>` +
+        `<strong>Total Fees:</strong> $${totalFees.toFixed(2)}<br>` +
+        `<strong>Net Profit:</strong> $${netProfit.toFixed(2)} (after fees)`;
+    });
   </script>
 </body>
 </html>
