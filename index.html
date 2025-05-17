@@ -23,49 +23,58 @@
 
     body {
       font-family: 'Inter', sans-serif;
-      background-color: var(--bg);
+      background: radial-gradient(circle at top left, #1c1f26, #0e1116);
       color: var(--text);
+      min-height: 100vh;
+      padding: 60px 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 40px 20px;
     }
 
     .container {
-      max-width: 700px;
+      max-width: 900px;
       width: 100%;
-      background-color: var(--surface);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      padding: 40px;
-      transition: all 0.3s ease;
+      background: linear-gradient(135deg, #1c1f26, #15181e);
+      border-radius: 24px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      padding: 50px;
+      position: relative;
+      overflow: hidden;
     }
 
     h1 {
       text-align: center;
-      font-size: 32px;
-      margin-bottom: 30px;
+      font-size: 36px;
+      margin-bottom: 40px;
       color: var(--primary);
+      letter-spacing: 1px;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
     }
 
     label {
       display: block;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       font-weight: 600;
+      color: var(--muted);
     }
 
     input,
     select {
       width: 100%;
       padding: 14px 16px;
-      margin-bottom: 20px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       background-color: var(--input-bg);
       color: var(--text);
       font-size: 16px;
-      transition: border 0.2s;
+      appearance: none;
+      background-image: none;
     }
 
     input:focus,
@@ -74,36 +83,41 @@
       border: 1px solid var(--primary);
     }
 
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
     .text-view {
       font-weight: 600;
       color: var(--primary);
-      margin-bottom: 20px;
+      margin: 10px 0 20px;
     }
 
     button {
-      width: 100%;
-      padding: 14px;
+      grid-column: 1 / -1;
+      padding: 16px;
       background-color: var(--primary);
       color: #000;
       border: none;
-      border-radius: 10px;
-      font-size: 18px;
+      border-radius: 12px;
+      font-size: 20px;
       font-weight: 700;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s ease, transform 0.2s ease;
     }
 
     button:hover {
       background-color: #e6c024;
+      transform: translateY(-2px);
     }
 
     .result {
-      margin-top: 30px;
+      margin-top: 40px;
       background-color: #2c313a;
-      padding: 20px;
-      border-radius: 10px;
+      padding: 30px;
+      border-radius: 16px;
       font-size: 16px;
-      line-height: 1.6;
+      line-height: 1.7;
       color: var(--text);
     }
 
@@ -113,7 +127,7 @@
       }
 
       h1 {
-        font-size: 26px;
+        font-size: 28px;
       }
     }
   </style>
@@ -122,25 +136,35 @@
   <div class="container">
     <h1>Futures PnL Calculator</h1>
     <form id="pnlForm">
-      <label for="position">Position Type</label>
-      <select id="position">
-        <option value="long">Long</option>
-        <option value="short">Short</option>
-      </select>
+      <div>
+        <label for="position">Position Type</label>
+        <select id="position">
+          <option value="long">Long</option>
+          <option value="short">Short</option>
+        </select>
+      </div>
 
-      <label for="entryPrice">Entry Price</label>
-      <input type="number" id="entryPrice" placeholder="e.g. 25000" step="any"/>
+      <div>
+        <label for="entryPrice">Entry Price</label>
+        <input type="number" id="entryPrice" placeholder="e.g. 25000" step="any"/>
+      </div>
 
-      <label for="leverage">Leverage</label>
-      <input type="number" id="leverage" placeholder="e.g. 10" step="any"/>
+      <div>
+        <label for="leverage">Leverage</label>
+        <input type="number" id="leverage" placeholder="e.g. 10" step="any"/>
+      </div>
 
-      <div class="text-view">Estimated Liquidation Price: <span id="liqPrice">-</span></div>
+      <div class="text-view full-width">Estimated Liquidation Price: <span id="liqPrice">-</span></div>
 
-      <label for="margin">Margin (USDT)</label>
-      <input type="number" id="margin" placeholder="e.g. 100" step="any"/>
+      <div>
+        <label for="margin">Margin (USDT)</label>
+        <input type="number" id="margin" placeholder="e.g. 100" step="any"/>
+      </div>
 
-      <label for="closePrice">Close Price</label>
-      <input type="number" id="closePrice" placeholder="e.g. 26000" step="any"/>
+      <div>
+        <label for="closePrice">Close Price</label>
+        <input type="number" id="closePrice" placeholder="e.g. 26000" step="any"/>
+      </div>
 
       <button type="submit">Calculate PnL</button>
     </form>
@@ -217,7 +241,6 @@
         `<strong>Net Profit:</strong> $${netProfit.toFixed(2)} (after fees)`;
     });
 
-    // Allow ENTER to trigger submit if all inputs are filled
     form.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
         const requiredInputs = ['entryPrice', 'leverage', 'margin', 'closePrice'];
