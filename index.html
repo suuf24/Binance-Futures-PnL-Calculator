@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Binance Futures Arcade PnL</title>
+<title>Bybit Futures Arcade PnL</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
 <style>
   :root {
@@ -75,6 +74,34 @@
   @keyframes flicker {
     0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
     20%, 24%, 55% { opacity: 0.7; }
+  }
+
+  .audio-controls {
+    position: absolute;
+    top: 2%;
+    right: 2%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .audio-toggle {
+    padding: 8px;
+    background-color: var(--pixel-gray);
+    color: var(--pixel-white);
+    border: 2px solid var(--pixel-gray);
+    border-radius: 0;
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(8px, 2vw, 10px);
+    cursor: pointer;
+    text-shadow: 1px 1px 0 #000;
+    box-shadow: 0 0 4px var(--crt-glow);
+    transition: transform 0.1s;
+  }
+
+  .audio-toggle:hover {
+    transform: scale(1.05);
+    background-color: var(--pixel-yellow);
+    color: #000;
   }
 
   form {
@@ -196,7 +223,6 @@
     to { opacity: 1; }
   }
 
-  /* Responsive Breakpoints */
   @media (max-width: 720px) {
     .arcade-cabinet {
       border: 6px solid #333;
@@ -206,6 +232,16 @@
     .crt-screen {
       padding: 3%;
       background-size: 100% 1.5px;
+    }
+
+    .audio-controls {
+      top: 1%;
+      right: 1%;
+    }
+
+    .audio-toggle {
+      padding: 6px;
+      font-size: clamp(7px, 1.8vw, 9px);
     }
 
     form {
@@ -252,6 +288,16 @@
       padding: 2%;
       background-size: 100% 1px;
       animation: scanline 4s linear infinite;
+    }
+
+    .audio-controls {
+      top: 0.5%;
+      right: 0.5%;
+    }
+
+    .audio-toggle {
+      padding: 4px;
+      font-size: clamp(6px, 1.5vw, 8px);
     }
 
     h1 {
@@ -307,13 +353,26 @@
     form {
       gap: 4px;
     }
+
+    .audio-controls {
+      top: 0.3%;
+      right: 0.3%;
+    }
+
+    .audio-toggle {
+      padding: 3px;
+      font-size: clamp(5px, 1.2vw, 7px);
+    }
   }
 </style>
 </head>
 <body>
 <div class="arcade-cabinet">
   <div class="crt-screen">
-    <h1>FUTURES PNL ARCADE</h1>
+    <div class="audio-controls">
+      <button class="audio-toggle" id="audioToggle">SOUND: ON</button>
+    </div>
+    <h1>BYBIT FUTURES PNL ARCADE</h1>
     <form id="pnlForm">
       <div class="form-group">
         <label for="position">POSITION</label>
@@ -325,12 +384,22 @@
 
       <div class="form-group">
         <label for="entryPrice">ENTRY PRICE</label>
-        <input type="number" id="entryPrice" placeholder="e.g. 25000" step="any" />
+        <input type="number" id="entryPrice" placeholder="e.g. 2500" step="any" />
       </div>
 
       <div class="form-group">
         <label for="leverage">LEVERAGE</label>
-        <input type="number" id="leverage" placeholder="e.g. 10" step="any" />
+        <input type="number" id="leverage" placeholder="e.g. 100" step="any" />
+      </div>
+
+      <div class="form-group">
+        <label for="margin">MARGIN (USDT)</label>
+        <input type="number" id="margin" placeholder="e.g. 10" step="any" />
+      </div>
+
+      <div class="form-group">
+        <label for="fundingFees">FUNDING FEES (USDT)</label>
+        <input type="number" id="fundingFees" placeholder="e.g. 0" step="any" value="0" />
       </div>
 
       <div class="text-view" id="liqPriceContainer">
@@ -338,13 +407,8 @@
       </div>
 
       <div class="form-group">
-        <label for="margin">MARGIN (USDT)</label>
-        <input type="number" id="margin" placeholder="e.g. 100" step="any" />
-      </div>
-
-      <div class="form-group">
         <label for="closePrice">CLOSE PRICE</label>
-        <input type="number" id="closePrice" placeholder="e.g. 26000" step="any" />
+        <input type="number" id="closePrice" placeholder="e.g. 2600" step="any" />
       </div>
 
       <button type="submit">CALCULATE SCORE</button>
@@ -354,8 +418,8 @@
   </div>
 </div>
 
-<audio id="backgroundSound" autoplay loop>
-  <source src="background.mp3" type="audio/mpeg">
+<audio id="pacmanSound" loop>
+  <source src="waka_waka.mp3" type="audio/mpeg">
   Your browser does not support the audio element.
 </audio>
 
@@ -363,9 +427,26 @@
   const entryInput = document.getElementById('entryPrice');
   const leverageInput = document.getElementById('leverage');
   const positionInput = document.getElementById('position');
+  const marginInput = document.getElementById('margin');
+  const fundingFeesInput = document.getElementById('fundingFees');
   const form = document.getElementById('pnlForm');
   const liqPriceDisplay = document.getElementById('liqPrice');
   const resultDiv = document.getElementById('result');
+  const pacmanSound = document.getElementById('pacmanSound');
+  const audioToggle = document.getElementById('audioToggle');
+
+  // Audio toggle functionality
+  let isPlaying = false;
+  audioToggle.addEventListener('click', () => {
+    if (isPlaying) {
+      pacmanSound.pause();
+      audioToggle.textContent = 'SOUND: OFF';
+    } else {
+      pacmanSound.play().catch(e => console.error('Audio play failed:', e));
+      audioToggle.textContent = 'SOUND: ON';
+    }
+    isPlaying = !isPlaying;
+  });
 
   function updatePositionColor() {
     if (positionInput.value === 'short') {
@@ -381,18 +462,27 @@
   function calculateLiquidationPrice() {
     const entry = parseFloat(entryInput.value);
     const leverage = parseFloat(leverageInput.value);
+    const margin = parseFloat(marginInput.value);
+    const fundingFees = parseFloat(fundingFeesInput.value) || 0;
     const position = positionInput.value;
 
-    if (!entry || !leverage || leverage === 0) {
+    if (!entry || !leverage || leverage === 0 || !margin) {
       liqPriceDisplay.textContent = "-";
       return;
     }
 
+    const mmr = 0.01; // 1% MMR for ETH/USDT
+    const positionSize = margin * leverage;
+    const contractQuantity = positionSize / entry;
+    const initialMargin = positionSize / leverage;
+    const closingFee = positionSize * 0.0006; // 0.06% closing fee
+    const effectiveMargin = initialMargin - fundingFees - closingFee;
+
     let liqPrice;
     if (position === "long") {
-      liqPrice = entry * (1 - 1 / leverage);
+      liqPrice = entry - ((effectiveMargin - (positionSize * mmr)) / contractQuantity);
     } else {
-      liqPrice = entry * (1 + 1 / leverage);
+      liqPrice = entry + ((effectiveMargin - (positionSize * mmr)) / contractQuantity);
     }
 
     liqPriceDisplay.textContent = liqPrice.toFixed(2);
@@ -400,6 +490,8 @@
 
   entryInput.addEventListener('input', calculateLiquidationPrice);
   leverageInput.addEventListener('input', calculateLiquidationPrice);
+  marginInput.addEventListener('input', calculateLiquidationPrice);
+  fundingFeesInput.addEventListener('input', calculateLiquidationPrice);
   positionInput.addEventListener('change', () => {
     updatePositionColor();
     calculateLiquidationPrice();
@@ -410,18 +502,19 @@
 
     const entry = parseFloat(entryInput.value);
     const close = parseFloat(document.getElementById('closePrice').value);
-    const margin = parseFloat(document.getElementById('margin').value);
+    const margin = parseFloat(marginInput.value);
+    const fundingFees = parseFloat(fundingFeesInput.value) || 0;
     const leverage = parseFloat(leverageInput.value);
     const position = positionInput.value;
 
     if (!entry || !close || !margin || !leverage || leverage === 0) {
-      resultDiv.innerHTML = `<span style="color: var(--pixel-red);">INSERT ALL DATA!</span>`;
+      resultDiv.innerHTML = `<div class="result-label"></div><div class="result-value" style="color: var(--pixel-red);">INSERT ALL DATA!</div>`;
       return;
     }
 
     const positionSize = margin * leverage;
-    const takerFeeRate = 0.0005;
-    const makerFeeRate = 0.0002;
+    const takerFeeRate = 0.00055; // Bybit taker fee 0.055%
+    const makerFeeRate = 0.0002; // Bybit maker fee 0.02%
     const openFee = positionSize * takerFeeRate;
     const closeFee = positionSize * makerFeeRate;
     let pnl;
@@ -430,17 +523,19 @@
     } else {
       pnl = (entry - close) * positionSize / entry;
     }
-    const totalFee = openFee + closeFee;
+    const totalFee = openFee + closeFee + fundingFees;
     const netPnl = pnl - totalFee;
     const pnlPercent = (netPnl / margin) * 100;
 
     resultDiv.innerHTML = `
       <div class="result-label">POSITION SIZE:</div>
       <div class="result-value">${positionSize.toFixed(2)} USDT</div>
-      <div class="result-label">OPEN FEE (0.05%):</div>
+      <div class="result-label">OPEN FEE (0.055%):</div>
       <div class="result-value">${openFee.toFixed(4)} USDT</div>
       <div class="result-label">CLOSE FEE (0.02%):</div>
       <div class="result-value">${closeFee.toFixed(4)} USDT</div>
+      <div class="result-label">FUNDING FEES:</div>
+      <div class="result-value">${fundingFees.toFixed(4)} USDT</div>
       <div class="result-label">TOTAL FEES:</div>
       <div class="result-value">${totalFee.toFixed(4)} USDT</div>
       <div class="result-label">PNL BEFORE FEES:</div>
