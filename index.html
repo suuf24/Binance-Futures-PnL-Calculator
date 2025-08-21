@@ -374,21 +374,21 @@
   // Default USDT to IDR exchange rate (fallback)
   let USDT_TO_IDR = 15500;
 
-  // Fetch USDT to IDR exchange rate using Frankfurter API (USD/IDR as proxy)
+  // Fetch USDT to IDR exchange rate using CoinGecko API
   async function fetchExchangeRate() {
     try {
-      const response = await fetch('https://api.frankfurter.dev/latest?base=USD&symbols=IDR');
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=idr');
       const data = await response.json();
-      if (data.rates && data.rates.IDR) {
-        USDT_TO_IDR = data.rates.IDR;
-        exchangeRateDisplay.textContent = USDT_TO_IDR.toFixed(0);
+      if (data.tether && data.tether.idr) {
+        USDT_TO_IDR = data.tether.idr;
+        exchangeRateDisplay.textContent = USDT_TO_IDR.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       } else {
         throw new Error('IDR rate not found');
       }
     } catch (error) {
       console.error('Error fetching exchange rate:', error);
       USDT_TO_IDR = 15500; // Fallback rate
-      exchangeRateDisplay.textContent = `${USDT_TO_IDR.toFixed(0)} (Fallback)`;
+      exchangeRateDisplay.textContent = `${USDT_TO_IDR.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (Fallback)`;
     }
   }
 
@@ -490,17 +490,17 @@
 
     resultDiv.innerHTML = `
       <div class="result-label">POSITION SIZE:</div>
-      <div class="result-value">${positionSize.toFixed(2)} USDT (${positionSizeIDR.toFixed(0)} IDR)</div>
+      <div class="result-value">${positionSize.toFixed(2)} USDT (${positionSizeIDR.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} IDR)</div>
       <div class="result-label">OPEN FEE (0.05%):</div>
-      <div class="result-value">${openFee.toFixed(4)} USDT (${openFeeIDR.toFixed(0)} IDR)</div>
+      <div class="result-value">${openFee.toFixed(4)} USDT (${openFeeIDR.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} IDR)</div>
       <div class="result-label">CLOSE FEE (0.02%):</div>
-      <div class="result-value">${closeFee.toFixed(4)} USDT (${closeFeeIDR.toFixed(0)} IDR)</div>
+      <div class="result-value">${closeFee.toFixed(4)} USDT (${closeFeeIDR.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} IDR)</div>
       <div class="result-label">TOTAL FEES:</div>
-      <div class="result-value">${totalFee.toFixed(4)} USDT (${totalFeeIDR.toFixed(0)} IDR)</div>
+      <div class="result-value">${totalFee.toFixed(4)} USDT (${totalFeeIDR.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} IDR)</div>
       <div class="result-label">PNL BEFORE FEES:</div>
-      <div class="result-value">${pnl.toFixed(4)} USDT (${pnlIDR.toFixed(0)} IDR)</div>
+      <div class="result-value">${pnl.toFixed(4)} USDT (${pnlIDR.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} IDR)</div>
       <div class="result-label">NET PNL:</div>
-      <div class="result-value">${netPnl.toFixed(4)} USDT (${netPnlIDR.toFixed(0)} IDR)</div>
+      <div class="result-value">${netPnl.toFixed(4)} USDT (${netPnlIDR.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} IDR)</div>
       <div class="result-label">PNL %:</div>
       <div class="result-value">${pnlPercent.toFixed(2)}%</div>
     `;
