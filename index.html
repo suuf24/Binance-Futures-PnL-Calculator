@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -316,7 +315,7 @@
     <h1>FUTURES PNL ARCADE</h1>
     <form id="pnlForm">
       <div class="form-group">
-        <label for="position">POSITION</label>
+        <label for="position">POSITION (L/S)</label>
         <select id="position" onchange="updatePositionColor()">
           <option value="long" selected>LONG (UP)</option>
           <option value="short">SHORT (DOWN)</option>
@@ -347,6 +346,10 @@
         <input type="number" id="closePrice" placeholder="e.g. 26000" step="any" />
       </div>
 
+      <div class="text-view" id="exchangeRateContainer">
+        USDT/IDR RATE: <span id="exchangeRate">Fetching...</span>
+      </div>
+
       <button type="submit">CALCULATE SCORE</button>
     </form>
 
@@ -361,104 +364,150 @@
 
 <script>
   const entryInput = document.getElementById('entryPrice');
-const leverageInput = document.getElementById('leverage');
-const positionInput = document.getElementById('position');
-const form = document.getElementById('pnlForm');
-const liqPriceDisplay = document.getElementById('liqPrice');
-const resultDiv = document.getElementById('result');
+  const leverageInput = document.getElementById('leverage');
+  const positionInput = document.getElementById('position');
+  const form = document.getElementById('pnlForm');
+  const liqPriceDisplay = document.getElementById('liqPrice');
+  const exchangeRateDisplay = document.getElementById('exchangeRate');
+  const resultDiv = document.getElementById('result');
 
-function updatePositionColor() {
-  if (positionInput.value === 'short') {
-    positionInput.classList.remove('long');
-    positionInput.classList.add('short');
-  } else {
-    positionInput.classList.remove('short');
-    positionInput.classList.add('long');
-  }
-  calculateLiquidationPrice();
-}
+  // Default USDT to IDR exchange rate (fallback)
+  let USDT_TO_IDR = 15500;
 
-function calculateLiquidationPrice() {
-  const entry = parseFloat(entryInput.value);
-  const leverage = parseFloat(leverageInput.value);
-  const position = positionInput.value;
-
-  if (!entry || !leverage || leverage === 0) {
-    liqPriceDisplay.textContent = "-";
-    return;
-  }
-
-  const mmr = 0.005; // Maintenance Margin Rate (0.5%)
-  let liqPrice;
-
-  if (position === "long") {
-    liqPrice = entry * (1 - (1 / leverage) + mmr);
-  } else {
-    liqPrice = entry * (1 + (1 / leverage) - mmr);
+  // Fetch USDT to IDR exchange rate using Frankfurter API (USD/IDR as proxy)
+  async function fetchExchangeRate() {
+    try {
+      const response = await fetch('https://api.frankfurter.dev/latest?base=USD&symbols=IDR');
+      const data = await response.json();
+      if (data.rates && data.rates.IDR) {
+        USDT_TO_IDR = data.rates.IDR;
+        exchangeRateDisplay.textContent = USDT_TO_IDR.toFixed(0);
+      } else {
+        throw new Error('IDR rate not found');
+      }
+    } catch (error) {
+      console.error('Error fetching exchange rate:', error);
+      USDT_TO_IDR = 15500; // Fallback rate
+      exchangeRateDisplay.textContent = `${USDT_TO_IDR.toFixed(0)} (Fallback)`;
+    }
   }
 
-  liqPriceDisplay.textContent = liqPrice.toFixed(2);
-}
+  // Fetch exchange rate on page load
+  fetchExchangeRate();
 
-entryInput.addEventListener('input', calculateLiquidationPrice);
-leverageInput.addEventListener('input', calculateLiquidationPrice);
-positionInput.addEventListener('change', () => {
+  function updatePositionColor() {
+    if (positionInput.value === 'short') {
+      positionInput.classList.remove('long');
+      positionInput.classList.add('short');
+    } else {
+      positionInput.classList.remove('short');
+      positionInput.classList.add('long');
+    }
+    calculateLiquidationPrice();
+  }
+
+  function calculateLiquidationPrice() {
+    const entry = parseFloat(entryInput.value);
+    const leverage = parseFloat(leverageInput.value);
+    const position = positionInput.value;
+
+    if (!entry || !leverage || leverage === 0) {
+      liqPriceDisplay.textContent = "-";
+      return;
+    }
+
+    const mmr = 0.005; // Maintenance Margin Rate (0.5%)
+    let liqPrice;
+
+    if (position === "long") {
+      liqPrice = entry * (1 - (1 / leverage) + mmr);
+    } else {
+      liqPrice = entry * (1 + (1 / leverage) - mmr);
+    }
+
+    liqPriceDisplay.textContent = liqPrice.toFixed(2);
+  }
+
+  // Keyboard shortcut handler
+  document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'l') {
+      positionInput.value = 'long';
+      updatePositionColor();
+    } else if (e.key.toLowerCase() === 's') {
+      positionInput.value = 'short';
+      updatePositionColor();
+    }
+  });
+
+  entryInput.addEventListener('input', calculateLiquidationPrice);
+  leverageInput.addEventListener('input', calculateLiquidationPrice);
+  positionInput.addEventListener('change', () => {
+    updatePositionColor();
+    calculateLiquidationPrice();
+  });
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    // Fetch latest exchange rate before calculating
+    await fetchExchangeRate();
+
+    const entry = parseFloat(entryInput.value);
+    const close = parseFloat(document.getElementById('closePrice').value);
+    const margin = parseFloat(document.getElementById('margin').value);
+    const leverage = parseFloat(leverageInput.value);
+    const position = positionInput.value;
+
+    if (!entry || !close || !margin || !leverage || leverage === 0) {
+      resultDiv.innerHTML = `<span style="color: var(--pixel-red);">INSERT ALL DATA!</span>`;
+      return;
+    }
+
+    const positionSize = margin * leverage;
+    const takerFeeRate = 0.0005;
+    const makerFeeRate = 0.0002;
+    const openFee = positionSize * takerFeeRate;
+    const closeFee = positionSize * makerFeeRate;
+
+    let pnl;
+    if (position === 'long') {
+      pnl = (close - entry) * positionSize / entry;
+    } else {
+      pnl = (entry - close) * positionSize / entry;
+    }
+
+    const totalFee = openFee + closeFee;
+    const netPnl = pnl - totalFee;
+    const pnlPercent = (netPnl / margin) * 100;
+
+    // Convert values to IDR
+    const positionSizeIDR = positionSize * USDT_TO_IDR;
+    const openFeeIDR = openFee * USDT_TO_IDR;
+    const closeFeeIDR = closeFee * USDT_TO_IDR;
+    const totalFeeIDR = totalFee * USDT_TO_IDR;
+    const pnlIDR = pnl * USDT_TO_IDR;
+    const netPnlIDR = netPnl * USDT_TO_IDR;
+
+    resultDiv.innerHTML = `
+      <div class="result-label">POSITION SIZE:</div>
+      <div class="result-value">${positionSize.toFixed(2)} USDT (${positionSizeIDR.toFixed(0)} IDR)</div>
+      <div class="result-label">OPEN FEE (0.05%):</div>
+      <div class="result-value">${openFee.toFixed(4)} USDT (${openFeeIDR.toFixed(0)} IDR)</div>
+      <div class="result-label">CLOSE FEE (0.02%):</div>
+      <div class="result-value">${closeFee.toFixed(4)} USDT (${closeFeeIDR.toFixed(0)} IDR)</div>
+      <div class="result-label">TOTAL FEES:</div>
+      <div class="result-value">${totalFee.toFixed(4)} USDT (${totalFeeIDR.toFixed(0)} IDR)</div>
+      <div class="result-label">PNL BEFORE FEES:</div>
+      <div class="result-value">${pnl.toFixed(4)} USDT (${pnlIDR.toFixed(0)} IDR)</div>
+      <div class="result-label">NET PNL:</div>
+      <div class="result-value">${netPnl.toFixed(4)} USDT (${netPnlIDR.toFixed(0)} IDR)</div>
+      <div class="result-label">PNL %:</div>
+      <div class="result-value">${pnlPercent.toFixed(2)}%</div>
+    `;
+  });
+
+  // Initialize position color on page load
   updatePositionColor();
-  calculateLiquidationPrice();
-});
-
-form.addEventListener('submit', function (e) {
-  e.preventDefault();
-
-  const entry = parseFloat(entryInput.value);
-  const close = parseFloat(document.getElementById('closePrice').value);
-  const margin = parseFloat(document.getElementById('margin').value);
-  const leverage = parseFloat(leverageInput.value);
-  const position = positionInput.value;
-
-  if (!entry || !close || !margin || !leverage || leverage === 0) {
-    resultDiv.innerHTML = `<span style="color: var(--pixel-red);">INSERT ALL DATA!</span>`;
-    return;
-  }
-
-  const positionSize = margin * leverage;
-  const takerFeeRate = 0.0005;
-  const makerFeeRate = 0.0002;
-  const openFee = positionSize * takerFeeRate;
-  const closeFee = positionSize * makerFeeRate;
-
-  let pnl;
-  if (position === 'long') {
-    pnl = (close - entry) * positionSize / entry;
-  } else {
-    pnl = (entry - close) * positionSize / entry;
-  }
-
-  const totalFee = openFee + closeFee;
-  const netPnl = pnl - totalFee;
-  const pnlPercent = (netPnl / margin) * 100;
-
-  resultDiv.innerHTML = `
-    <div class="result-label">POSITION SIZE:</div>
-    <div class="result-value">${positionSize.toFixed(2)} USDT</div>
-    <div class="result-label">OPEN FEE (0.05%):</div>
-    <div class="result-value">${openFee.toFixed(4)} USDT</div>
-    <div class="result-label">CLOSE FEE (0.02%):</div>
-    <div class="result-value">${closeFee.toFixed(4)} USDT</div>
-    <div class="result-label">TOTAL FEES:</div>
-    <div class="result-value">${totalFee.toFixed(4)} USDT</div>
-    <div class="result-label">PNL BEFORE FEES:</div>
-    <div class="result-value">${pnl.toFixed(4)} USDT</div>
-    <div class="result-label">NET PNL:</div>
-    <div class="result-value">${netPnl.toFixed(4)} USDT</div>
-    <div class="result-label">PNL %:</div>
-    <div class="result-value">${pnlPercent.toFixed(2)}%</div>
-  `;
-});
-
-// Initialize position color on page load
-updatePositionColor();
 </script>
-
 </body>
 </html>
